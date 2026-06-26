@@ -17,7 +17,7 @@ INNBCswap is built as a streamlined DeFi aggregation interface for swapping toke
 The current architecture includes:
 
 - 0x Swap API integration for EVM routing
-- Jupiter/Solana infrastructure through the app runtime proxy model
+- Jupiter/Solana swap infrastructure through the app runtime proxy model
 - same-origin API proxying so private API keys are never exposed to the browser
 - wallet-based transaction execution
 - route display logic for aggregator-provided liquidity paths
@@ -182,37 +182,32 @@ The original upstream workspace contains install-time scripts that are not neede
 
 ---
 
-## Local Runtime Secrets
+## Local Development and API Key Security
 
-For local development, create:
+INNBCswap uses same-origin API proxy routes so private API keys are never exposed to the browser.
 
-```txt
-apps/web/.env.local
-```
+The browser does not call 0x, Jupiter, or Helius with keys directly. Instead, the browser calls local app routes:
+
+- `/api/zero-ex`
+- `/api/jupiter`
+- `/api/solana-rpc`
+
+Those routes are handled by:
+
+- the Vite dev proxy during local development
+- Nginx reverse proxy in production
+
+This gives local development and production the same request shape.
+
+### Browser Runtime Config
+
+The browser-visible runtime config lives at:
+
+`apps/web/public/runtime-config.js`
+
+This file must contain only public runtime values and same-origin API paths.
 
 Example:
-
-```env
-ZERO_EX_API_KEY=your_0x_api_key
-JUPITER_API_KEY=your_jupiter_api_key
-HELIUS_API_KEY=your_helius_api_key
-```
-
-These keys are read only by the Vite dev server proxy.
-
-They must not be placed in `runtime-config.js`.
-
----
-
-## Runtime Config
-
-The public runtime config lives at:
-
-```txt
-apps/web/public/runtime-config.js
-```
-
-It should contain same-origin API URLs only:
 
 ```js
 window.__APP_RUNTIME_CONFIG__ = {
@@ -223,11 +218,54 @@ window.__APP_RUNTIME_CONFIG__ = {
 }
 ```
 
-Never place private API keys in this file.
+Do not place private API keys in this file.
 
----
+This file is included in the built web app and can be viewed by browser users, so it must never contain:
 
-## Run Locally
+- 0x API keys
+- Jupiter API keys
+- Helius API keys
+- private RPC keys
+- server credentials
+- deployment secrets
+
+### Local Development Secrets
+
+For local development, create:
+
+`apps/web/.env.local`
+
+Example:
+
+```env
+ZERO_EX_API_KEY=your_0x_api_key
+JUPITER_API_KEY=your_jupiter_api_key
+HELIUS_API_KEY=your_helius_api_key
+```
+
+This file is read by:
+
+`apps/web/vite.config.mts`
+
+The Vite dev server uses these values only inside the local proxy process.
+
+Local request flow:
+
+```txt
+browser -> http://localhost:3000/api/zero-ex -> Vite proxy injects 0x key -> 0x API
+browser -> http://localhost:3000/api/jupiter -> Vite proxy injects Jupiter key -> Jupiter API
+browser -> http://localhost:3000/api/solana-rpc -> Vite proxy injects Helius key -> Helius RPC
+```
+
+The keys are not served to the browser.
+
+`apps/web/.env.local` is local-only and must never be committed, uploaded, or published.
+
+A safe template is provided at:
+
+`apps/web/.env.local.example`
+
+### Run Locally
 
 From the repo root:
 
@@ -272,15 +310,22 @@ bun web build:production
 
 The production output is created at:
 
-```txt
-apps/web/build
-```
+`apps/web/build`
 
-For deployment, upload the build output to the web root configured by Nginx, for example:
+For deployment, upload the contents of the production build output to the web root configured by Nginx.
 
-```txt
-/app/innbcswap
-```
+Example production web root:
+
+`/app/innbcswap`
+
+Do not upload local secret files or local development artifacts to the public source repository, including:
+
+- `apps/web/.env.local`
+- local cache folders
+- `node_modules`
+- `.nx`
+- generated build folders
+- local deployment/archive folders that are not part of the source code
 
 ---
 
@@ -288,51 +333,95 @@ For deployment, upload the build output to the web root configured by Nginx, for
 
 INNBCswap is intended to be served as a static Vite build behind Nginx.
 
-Nginx should:
+In production, Nginx performs the same proxy role that Vite performs locally.
 
-- serve the static app
-- route SPA paths through `index.html`
-- proxy `/api/zero-ex`
-- proxy `/api/jupiter`
-- proxy `/api/solana-rpc`
-- inject private API keys server-side
+Recommended Nginx config location:
 
-Conceptual production model:
+`/etc/nginx/conf.d/innbcswap.conf`
+
+Main Nginx config location:
+
+`/etc/nginx/nginx.conf`
+
+Example static app root:
+
+`/app/innbcswap`
+
+Production request flow:
+
+```txt
+browser -> https://innbcswap.io/api/zero-ex -> Nginx injects 0x key -> 0x API
+browser -> https://innbcswap.io/api/jupiter -> Nginx injects Jupiter key -> Jupiter API
+browser -> https://innbcswap.io/api/solana-rpc -> Nginx injects Helius key -> Helius RPC
+```
+
+Conceptual Nginx configuration:
 
 ```nginx
-location / {
-  try_files $uri $uri/ /index.html;
-}
+server {
+  listen 80;
+  server_name innbcswap.io www.innbcswap.io;
 
-location /api/zero-ex/ {
-  proxy_pass https://api.0x.org/;
-  proxy_set_header Host api.0x.org;
-  proxy_set_header 0x-api-key "YOUR_ZERO_EX_API_KEY";
-  proxy_set_header 0x-version "v2";
-  proxy_ssl_server_name on;
-}
+  root /app/innbcswap;
+  index index.html;
 
-location /api/jupiter/ {
-  proxy_pass https://api.jup.ag/swap/v2/;
-  proxy_set_header Host api.jup.ag;
-  proxy_set_header x-api-key "YOUR_JUPITER_API_KEY";
-  proxy_ssl_server_name on;
-}
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
 
-location = /api/solana-rpc {
-  proxy_pass https://mainnet.helius-rpc.com/?api-key=YOUR_HELIUS_API_KEY;
-  proxy_set_header Host mainnet.helius-rpc.com;
-  proxy_set_header Content-Type application/json;
-  proxy_ssl_server_name on;
+  location /api/zero-ex/ {
+    proxy_pass https://api.0x.org/;
+    proxy_set_header Host api.0x.org;
+    proxy_set_header 0x-api-key "YOUR_ZERO_EX_API_KEY";
+    proxy_set_header 0x-version "v2";
+    proxy_ssl_server_name on;
+    proxy_read_timeout 120;
+    proxy_connect_timeout 120;
+  }
+
+  location /api/jupiter/ {
+    proxy_pass https://api.jup.ag/swap/v2/;
+    proxy_set_header Host api.jup.ag;
+    proxy_set_header x-api-key "YOUR_JUPITER_API_KEY";
+    proxy_ssl_server_name on;
+    proxy_read_timeout 120;
+    proxy_connect_timeout 120;
+  }
+
+  location = /api/solana-rpc {
+    proxy_pass https://mainnet.helius-rpc.com/?api-key=YOUR_HELIUS_API_KEY;
+    proxy_set_header Host mainnet.helius-rpc.com;
+    proxy_set_header Content-Type application/json;
+    proxy_ssl_server_name on;
+    proxy_read_timeout 120;
+    proxy_connect_timeout 120;
+  }
 }
 ```
 
-Keep the Nginx config file containing secrets locked down on the server, for example:
+After editing the Nginx config, verify and reload Nginx:
+
+```bash
+nginx -t
+systemctl reload nginx
+```
+
+For HTTPS, issue the certificate after DNS points to the server:
+
+```bash
+certbot --nginx -d innbcswap.io -d www.innbcswap.io
+```
+
+The Nginx config file contains production API secrets, so lock it down on the server.
+
+Recommended ownership and permissions:
 
 ```txt
 root:root
 0600
 ```
+
+The browser never receives the production API keys.
 
 ---
 
