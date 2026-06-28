@@ -11,9 +11,6 @@
       "path": "./packages/uniswap"
     },
     {
-      "path": "./packages/wallet"
-    },
-    {
       "path": "./packages/ui"
     },
     {
@@ -27,18 +24,6 @@
     },
     {
       "path": "./packages/sessions"
-    },
-    {
-      "path": "./config/vitest-presets"
-    },
-    {
-      "path": "./packages/notifications"
-    },
-    {
-      "path": "./packages/hashcash-native"
-    },
-    {
-      "path": "./packages/mycelium"
     },
     {
       "path": "./packages/websocket"

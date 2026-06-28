@@ -40,15 +40,10 @@
     "paths": {
       "@universe/api/*": ["./packages/api/*"],
       "@universe/config/*": ["./packages/config/*"],
-      "@universe/notifications/*": ["./packages/notifications/*"],
       "@universe/sessions/*": ["./packages/sessions/*"],
-      "@universe/hashcash-native": ["./packages/hashcash-native/src/index.ts"],
-      "@universe/hashcash-native/*": ["./packages/hashcash-native/*"],
       "ui/*": ["./packages/ui/*"],
       "uniswap/*": ["./packages/uniswap/*"],
       "utilities/*": ["./packages/utilities/*"],
-      "wallet/*": ["./packages/wallet/*"],
-      "@universe/mycelium/*": ["./packages/mycelium/*"],
       "@universe/websocket/*": ["./packages/websocket/*"],
       "@universe/prices/*": ["./packages/prices/*"],
       "@uniswap/client-privy-embedded-wallet/dist/uniswap/privy-embedded-wallet/v1/service_pb": [

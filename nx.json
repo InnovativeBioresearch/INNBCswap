@@ -8,12 +8,6 @@
     "default": ["sharedGlobals", "{projectRoot}/**/*"],
     "production": [
       "default",
-      "!{projectRoot}/**/*.spec.tsx",
-      "!{projectRoot}/**/*.spec.ts",
-      "!{projectRoot}/**/*.test.tsx",
-      "!{projectRoot}/**/*.test.ts",
-      "!{projectRoot}/jest.config.[jt]s",
-      "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/**/*.stories.tsx",
       "!{projectRoot}/**/*.stories.ts"
     ],
