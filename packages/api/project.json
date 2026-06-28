@@ -1,0 +1,62 @@
+{
+  "name": "@universe/api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/api/src",
+  "projectType": "library",
+  "tags": ["scope:api", "type:lib"],
+  "targets": {
+    "lint:biome": {},
+    "lint:biome:fix": {},
+    "lint:eslint": {},
+    "lint:eslint:fix": {},
+    "lint": {},
+    "lint:fix": {},
+    "typecheck": {},
+    "typecheck:tsgo": {},
+    "prepare": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["nx tradingapi:generate api"],
+        "parallel": false
+      },
+      "cache": true,
+      "inputs": [],
+      "outputs": []
+    },
+    "check:deps:usage": {},
+    "tradingapi:schema": {
+      "command": "curl https://trading-api-labs.interface.gateway.uniswap.org/v1/api.json -o ./src/clients/trading/api.json",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    },
+    "tradingapi:generate:openapi": {
+      "command": "node scripts/tradingapi-generate-openapi.cjs",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": ["{projectRoot}/src/clients/trading/api.json"],
+      "outputs": ["{projectRoot}/src/clients/trading/__generated__"]
+    },
+    "tradingapi:generate": {
+      "command": "node --no-warnings=ExperimentalWarning --loader ts-node/esm ./scripts/modifyTradingApiTypes.mts",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/scripts/modifyTradingApiTypes.mts",
+        "{projectRoot}/src/clients/trading/types.ts",
+        {
+          "runtime": "node -v"
+        },
+        {
+          "dependentTasksOutputFiles": "**/*.ts"
+        }
+      ],
+      "outputs": ["{projectRoot}/src/clients/trading/__generated__/models"],
+      "dependsOn": ["tradingapi:generate:openapi"]
+    }
+  }
+}
