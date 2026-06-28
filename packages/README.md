@@ -1,25 +1,43 @@
 # Shared Packages
 
-Packages in this folder are shared packages that can be used across applications.
-
-Shared code packages covering UI, shared functionality, and shared utilities. For non-product specific code, split into separate yet widely scoped packages rather than small packages.
+This folder contains shared packages used by the INNBCswap web application and its supporting tooling.
 
 ## `uniswap`
 
-Shared code across all of our apps. Where any cross functional features should be built by default.
+Shared swap, token, chain, transaction, and interface logic used by the web application.
 
 ## `ui`
 
-Shared component library across all applications. Should not import any other packages or applications beyond utilities. Should only contain core UI elements that are part of or basic combinations of our core design building blocks.
-
-## `wallet`
-
-Shared code for wallet functionality and larger UI components.
+Shared UI component library and design-system primitives.
 
 ## `api`
 
-Shared utilities for data fetching across all applications.
+Shared API and RPC helper utilities.
 
 ## `utilities`
 
-Shared utility functionality used across all applications. Should not import any other packages or applications.
+Shared utility functions used across the web application and packages.
+
+## `config`
+
+Shared runtime/configuration helpers.
+
+## `prices`
+
+Shared price-related utilities and types.
+
+## `sessions`
+
+Shared session and challenge helper logic.
+
+## `websocket`
+
+Shared websocket utilities.
+
+## `biome-config`
+
+Shared Biome formatting/lint configuration.
+
+## `eslint-config`
+
+Shared ESLint configuration.
